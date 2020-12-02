@@ -1,0 +1,1 @@
+export PYTHONPATH="$PYTHONPATH:/usr/local/lib/kht/python/3.8"
