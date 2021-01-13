@@ -6,6 +6,9 @@ import math
 from kht import kht
 from timeit import default_timer as timer
 
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+
 
 
 def dist_Gausiankernel(link_arrange):
@@ -112,7 +115,9 @@ def init_kht(source, K_cluster_min_size=10, K_kernel_min_height=0.002, K_cluster
 
     return kht(edges_copy, cluster_min_size=K_cluster_min_size, cluster_min_deviation=K_cluster_min_deviation, kernel_min_height=K_kernel_min_height, delta=K_delta, n_sigmas=K_n_sigmas), filter_result;
 
-def showLines_kht(lines, source, lines_count=10):
+def showLines_kht(lines, source, lines_count=0):
+    if lines_count==0: lines_count=len(lines)
+
     if(len(source.shape)>2): height, width, _ = source.shape
     else: height, width = source.shape
 
@@ -126,17 +131,47 @@ def showLines_kht(lines, source, lines_count=10):
         w2 = width/2
         if sin_theta != 0:
             one_div_sin_theta = 1 / sin_theta
-            x = (round(0) , round(h2 + (rho + w2 * cos_theta) * one_div_sin_theta))
-            y = (round(w2+w2) , round(h2 + (rho - w2 * cos_theta) * one_div_sin_theta))
+            x = (int(round(0)) , int(round(h2 + (rho + w2 * cos_theta) * one_div_sin_theta)))
+            y = (int(round(w2+w2)) , int(round(h2 + (rho - w2 * cos_theta) * one_div_sin_theta)))
         else:
-            x = (round(w2 + rho), round(0))
-            y = (round(w2 + rho), round(h2+h2))
-        cv.line(source_copy, x, y, (120,0,255), 1, cv.LINE_AA)
+            x = (int(round(w2 + rho)), int(round(0)))
+            y = (int(round(w2 + rho)), int(round(h2+h2)))
+        cv.line(source_copy, x, y, (120,0,255), 2, cv.LINE_AA)
 
-    cv.imwrite('results/KHT_result.jpg', source_copy)
+    #cv.imwrite('results/KHT_result.jpg', source_copy)
 
     return source_copy;
 
+def init_kmeans(lines, interations=10, qtd_clusters=10):
+    #X = list(map(list, lines))
+    X = np.asarray(lines, dtype=np.float32)
+    ##############################################################################
+    # Compute clustering with Means
+
+    k_means = KMeans(init='k-means++', n_clusters=qtd_clusters, n_init=interations)
+    k_means.fit(X)
+    k_means_labels = k_means.labels_
+    k_means_cluster_centers = k_means.cluster_centers_
+    k_means_labels_unique = np.unique(k_means_labels)
+
+    ##############################################################################
+    # Plot result
+
+    colors = ['#4EACC5', '#FF9C34', '#4E9A06', '#ffff00', '#aa5357', '#388406', '#f53cbd', '#6b6ac7', '#29c90e', '#735756', '#2828b5', '#f77c27', '#ee68c0', '#5cbb01', '#835291']
+    plt.figure()
+    #plt.hold(True)
+    for k, col in zip(range(qtd_clusters), colors):
+        my_members = k_means_labels == k
+        cluster_center = k_means_cluster_centers[k]
+        plt.plot(X[my_members, 0], X[my_members, 1], 'w',
+                markerfacecolor=col, marker='.')
+        plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
+                markeredgecolor='k', markersize=6)
+    plt.title('KMeans')    
+    plt.grid(True)
+    plt.show()
+
+    return k_means.cluster_centers_
 
 def main(argv):
     default_file = 'img/3.jpeg'
@@ -163,16 +198,18 @@ def main(argv):
     all_time+=(end-start)
 
     start = timer()
-    result, result2 = pcnn_modified(i_image,T_extra=53)
+    #source,Alpha_L=0.1, Alpha_T=0.5, V_T=1.0, W=dist_Gausiankernel(9), Beta=0.1, T_extra=63, Num=10
+    result, result2 = pcnn_modified(i_image,T_extra=43, Num=10)
     end = timer()
     print("pcnn_modified:\t", end - start)
     all_time+=(end-start)
 
-    #start = timer()
-    #result3, result4 = pcnn(gray)
-    #end = timer()
-    #print("pcnn function:\t", end - start)
-    #all_time+=(end-start)
+    # start = timer()
+    # #source, Alpha_F=0.1, Alpha_L=1.0, Alpha_T=0.3, V_F=0.5, V_L=0.2, V_T=20.0, Beta=0.1, Num=10, W=np.array([0.5, 1, 0.5, 1, 0, 1, 0.5, 1, 0.5,], np.float).reshape((3, 3)), M=np.array([0.5, 1, 0.5, 1, 0, 1, 0.5, 1, 0.5,], np.float).reshape((3, 3))
+    # result3, result4 = pcnn(gray)
+    # end = timer()
+    # print("pcnn function:\t", end - start)
+    # all_time+=(end-start)
 
     start = timer()
     lines, filtrado = init_kht(result)
@@ -181,13 +218,22 @@ def main(argv):
     all_time+=(end-start)
 
     start = timer()
-    lines_image = showLines_kht(lines,result*255)
+    k_lines = init_kmeans(lines)
+    end = timer()
+    print("init_kmeans:\t", end - start)
+    all_time+=(end-start)
+
+    start = timer()
+    lines_image = showLines_kht(lines,src)
+    lines_filtred = showLines_kht(k_lines,src)
     end = timer()
     print("showLines_kht:\t", end - start)
     all_time+=(end-start)
 
     print("all_time:\t", all_time)
-    
+
+    cv.imwrite('results/KHT_result1.jpg', lines_image)
+    cv.imwrite('results/KHT_result2.jpg', lines_filtred)
         
     cv.waitKey()
     return 0
