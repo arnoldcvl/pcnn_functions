@@ -142,9 +142,23 @@ def showLines_kht(lines, source, lines_count=0):
 
     return source_copy;
 
-def init_kmeans(lines, interations=10, qtd_clusters=10):
+def init_kmeans(lines, interations=10, qtd_clusters=10, toPlot=False):
     #X = list(map(list, lines))
     X = np.asarray(lines, dtype=np.float32)
+
+    qtd_180 = X[:,1]>178
+    qtd_0 = X[:,1]<2
+    #print(X)
+
+    if np.count_nonzero(qtd_180) > np.count_nonzero(qtd_0):
+        X[qtd_0, 1]=179.5
+    else:
+        X[qtd_180, 1]=0
+
+    #print(X)
+
+
+    #testzim = k_means_labels == k
     ##############################################################################
     # Compute clustering with Means
 
@@ -156,20 +170,20 @@ def init_kmeans(lines, interations=10, qtd_clusters=10):
 
     ##############################################################################
     # Plot result
-
-    colors = ['#4EACC5', '#FF9C34', '#4E9A06', '#ffff00', '#aa5357', '#388406', '#f53cbd', '#6b6ac7', '#29c90e', '#735756', '#2828b5', '#f77c27', '#ee68c0', '#5cbb01', '#835291']
-    plt.figure()
-    #plt.hold(True)
-    for k, col in zip(range(qtd_clusters), colors):
-        my_members = k_means_labels == k
-        cluster_center = k_means_cluster_centers[k]
-        plt.plot(X[my_members, 0], X[my_members, 1], 'w',
-                markerfacecolor=col, marker='.')
-        plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
-                markeredgecolor='k', markersize=6)
-    plt.title('KMeans')    
-    plt.grid(True)
-    plt.show()
+    if toPlot:
+        colors = ['#4EACC5', '#FF9C34', '#4E9A06', '#ffff00', '#aa5357', '#388406', '#f53cbd', '#6b6ac7', '#29c90e', '#735756', '#2828b5', '#f77c27', '#ee68c0', '#5cbb01', '#835291']
+        plt.figure()
+        #plt.hold(True)
+        for k, col in zip(range(qtd_clusters), colors):
+            my_members = k_means_labels == k
+            cluster_center = k_means_cluster_centers[k]
+            plt.plot(X[my_members, 0], X[my_members, 1], 'w',
+                    markerfacecolor=col, marker='.')
+            plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
+                    markeredgecolor='k', markersize=6)
+        plt.title('KMeans')    
+        plt.grid(True)
+        plt.show()
 
     return k_means.cluster_centers_
 
@@ -218,7 +232,7 @@ def main(argv):
     all_time+=(end-start)
 
     start = timer()
-    k_lines = init_kmeans(lines)
+    k_lines = init_kmeans(lines,toPlot=False)
     end = timer()
     print("init_kmeans:\t", end - start)
     all_time+=(end-start)
